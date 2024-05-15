@@ -1,0 +1,2 @@
+log_level: ${LOG_LEVEL:-info}
+modules_directory: ${MODULES_DIR:-./modules}
