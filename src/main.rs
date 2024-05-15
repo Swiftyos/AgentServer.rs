@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use serde::Deserialize;
 use serde_with_expand_env::with_expand_envs;
 use std::fs;
-use tracing::{Level, info, error, warn, debug, trace};
+use tracing::{debug, error, info, trace, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[derive(Deserialize, Debug)]
@@ -53,9 +53,7 @@ fn setup_logging(log_level: &str) {
         _ => Level::INFO,
     };
 
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(level)
-        .finish();
+    let subscriber = FmtSubscriber::builder().with_max_level(level).finish();
 
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global default subscriber");
@@ -98,7 +96,6 @@ fn main() {
             info!("Info message");
             warn!("Warn message");
             error!("Error message");
-
         }
         None => {
             // No subcommand provided
