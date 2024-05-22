@@ -1,0 +1,17 @@
+[package]
+name = "autogpt"
+version.workspace = true
+edition = "2021"
+documentation.workspace = true
+description.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[[bin]]
+name = "autogpt"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.37.0", features = ["full"] }
