@@ -1,12 +1,12 @@
 [workspace]
 members = [
-    "bin/autogpt"
+    "bin/server"
 ]
 
 [workspace.package]
-name = "agpt"
+name = "AgentServer"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "AutoGPT Server"
+description = "Agent Server"
 documentation = ""
