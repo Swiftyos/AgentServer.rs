@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "bin/server"
-]
+, "libs/as-api-server", "libs/as-core", "libs/as-executor", "libs/as-manger"]
 
 [workspace.package]
 name = "AgentServer"
