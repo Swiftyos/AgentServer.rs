@@ -73,7 +73,7 @@ In this guide, we'll add a new feature to the **REST service**: an endpoint to m
 - **Update Dependencies**:
 
   ```bash
-  cd project-root
+  cd agentserver.rs
   cargo update
   ```
 
@@ -655,7 +655,3 @@ By following this guide, you've successfully added a new API route and database 
 **Note**: Remember to keep your feature branch up-to-date with the `develop` branch by rebasing or merging as necessary. This ensures that your code integrates smoothly with the latest changes in the codebase.
 
 If you have any questions or need assistance, don't hesitate to reach out to the project maintainers or open a discussion in the project's communication channels.
-
----
-
-By integrating your work seamlessly into the new project structure, you contribute to a codebase that's organized, scalable, and easy for all team members to navigate and maintain.
