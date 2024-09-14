@@ -82,7 +82,7 @@ libs/db/
 **Key Packages:**
 
 - `sqlx` for asynchronous, compile-time verified SQL queries.
-- `dotenv` or `config` for managing database configuration.
+- `config` for managing database configuration.
 
 #### **c. `libs/messaging/`**
 
