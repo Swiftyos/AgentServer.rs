@@ -1,12 +1,9 @@
 [workspace]
 members = [
-    "bin/server"
-, "libs/as-api-server", "libs/as-core", "libs/as-executor", "libs/as-manger"]
-
-[workspace.package]
-name = "AgentServer"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-description = "Agent Server"
-documentation = ""
+    "common",
+    "services/webhook_service",
+    "services/timer_service",
+    "services/rest_service",
+    "services/graph_processor_worker",
+    "services/websocket_service",
+]

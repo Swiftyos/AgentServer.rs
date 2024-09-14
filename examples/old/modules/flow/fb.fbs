@@ -1,9 +1,0 @@
-namespace users;
-
-table User {
-    id:int;
-    name:string;
-    id:ulong;
-}
-
-root_type User;
