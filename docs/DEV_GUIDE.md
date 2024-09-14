@@ -15,7 +15,7 @@ This guide demonstrates how to apply the best practices outlined in our [Contrib
     - [Adding a New Migration](#adding-a-new-migration)
     - [Updating Database Models](#updating-database-models)
 7. [Step 5: Implementing Database Queries](#step-5-implementing-database-queries)
-8. [Step 6: Updating the Common Crate](#step-6-updating-the-common-crate)
+8. [Step 6: Updating Shared Libraries](#step-6-updating-shared-libraries)
 9. [Step 7: Implementing the API Route in the REST Service](#step-7-implementing-the-api-route-in-the-rest-service)
     - [Adding Route Handlers](#adding-route-handlers)
     - [Registering the Route](#registering-the-route)
@@ -35,7 +35,7 @@ This guide demonstrates how to apply the best practices outlined in our [Contrib
 
 ## Introduction
 
-In this guide, we'll add a new feature to the REST service: an endpoint to manage "Projects". We'll create a new database table for projects, update the common crate with new models, implement database queries, and expose API routes for creating and retrieving projects. We'll follow best practices for development, testing, and code quality to ensure our contribution is efficient and reliable.
+In this guide, we'll add a new feature to the **REST service**: an endpoint to manage "Projects". We'll create a new database table for projects, update the shared libraries with new models, implement database queries, and expose API routes for creating and retrieving projects. We'll follow best practices for development, testing, and code quality to ensure our contribution is efficient and reliable.
 
 ---
 
@@ -43,9 +43,12 @@ In this guide, we'll add a new feature to the REST service: an endpoint to manag
 
 - **Feature**: Add API endpoints to create and retrieve projects.
 - **Database Changes**: Introduce a new `projects` table.
-- **Services Affected**:
-  - **Common Crate**: New models and database interactions.
-  - **REST Service**: New API routes and handlers.
+- **Components Affected**:
+  - **Libraries**:
+    - `libs/db`: New models and database interactions.
+    - `libs/common`: Any shared models or utilities (if needed).
+  - **Services**:
+    - `services/rest_service`: New API routes and handlers.
 
 ---
 
@@ -92,19 +95,24 @@ git checkout -b feature/project-management develop
 
 We'll use `sqlx`'s migration tool to create a new migration.
 
-1. **Create Migration File**:
+1. **Navigate to the `libs/db` Directory**:
 
    ```bash
-   cd common
+   cd libs/db
+   ```
+
+2. **Create Migration File**:
+
+   ```bash
    sqlx migrate add create_projects_table
    ```
 
-   This creates a new SQL file in `common/migrations/`.
+   This creates a new SQL file in `libs/db/migrations/`.
 
-2. **Edit Migration File**: Open the newly created migration file and add the SQL statements.
+3. **Edit Migration File**: Open the newly created migration file and add the SQL statements.
 
    ```sql
-   -- common/migrations/{timestamp}__create_projects_table.sql
+   -- libs/db/migrations/{timestamp}__create_projects_table.sql
 
    CREATE TABLE projects (
        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -115,7 +123,7 @@ We'll use `sqlx`'s migration tool to create a new migration.
    );
    ```
 
-3. **Apply Migrations**: Run migrations against your development database.
+4. **Apply Migrations**: Run migrations against your development database.
 
    ```bash
    sqlx migrate run
@@ -123,20 +131,17 @@ We'll use `sqlx`'s migration tool to create a new migration.
 
 ### Updating Database Models
 
-1. **Update `schema.rs`**:
-
-   `sqlx` can infer database schemas, but for clarity, we might define models manually.
-
-2. **Create a Project Model**:
+1. **Create a Project Model**:
 
    ```rust
-   // common/src/db/models.rs
+   // libs/db/src/models/project.rs
 
    use serde::{Deserialize, Serialize};
    use uuid::Uuid;
    use chrono::{DateTime, Utc};
+   use sqlx::FromRow;
 
-   #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+   #[derive(Debug, Serialize, Deserialize, FromRow)]
    pub struct Project {
        pub id: Uuid,
        pub name: String,
@@ -146,17 +151,29 @@ We'll use `sqlx`'s migration tool to create a new migration.
    }
    ```
 
+2. **Update the Models Module**:
+
+   ```rust
+   // libs/db/src/models/mod.rs
+
+   pub mod project;
+
+   pub use project::Project;
+
+   // ... existing models
+   ```
+
 ---
 
 ## Step 5: Implementing Database Queries
 
-Implement database functions in the common crate.
+Implement database functions in the `libs/db` crate.
 
 ```rust
-// common/src/db/projects.rs
+// libs/db/src/queries/project_queries.rs
 
-use super::models::Project;
-use sqlx::postgres::PgPool;
+use crate::models::Project;
+use sqlx::PgPool;
 use anyhow::Result;
 
 pub async fn create_project(pool: &PgPool, name: &str, description: Option<&str>) -> Result<Project> {
@@ -188,6 +205,18 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
 }
 ```
 
+- **Update the Queries Module**:
+
+  ```rust
+  // libs/db/src/queries/mod.rs
+
+  pub mod project_queries;
+
+  pub use project_queries::{create_project, get_projects};
+
+  // ... existing queries
+  ```
+
 - **Best Practices Applied**:
   - **Use of `sqlx`**: For compile-time query checking.
   - **Error Handling**: Using `anyhow::Result` for simplicity.
@@ -195,32 +224,31 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
 
 ---
 
-## Step 6: Updating the Common Crate
+## Step 6: Updating Shared Libraries
 
-1. **Add Modules**:
-
-   ```rust
-   // common/src/db/mod.rs
-
-   pub mod models;
-   pub mod projects;
-   // ... existing modules
-   ```
-
-2. **Update `lib.rs`**:
+1. **Update `libs/db/src/lib.rs`**:
 
    ```rust
-   // common/src/lib.rs
+   // libs/db/src/lib.rs
 
-   pub mod db;
    pub mod models;
-   pub mod utils;
-   // ... existing modules
+   pub mod queries;
+   pub mod connection; // If you have a connection module
+   // ... other modules
    ```
 
-3. **Re-export Necessary Items**:
+2. **Ensure Proper Exports**:
 
-   If needed, re-export structs or functions for easier access.
+   - Re-export structs or functions if necessary for easier access in services.
+
+3. **Add Dependencies in `services/rest_service/Cargo.toml`**:
+
+   ```toml
+   [dependencies]
+   db = { path = "../../libs/db" }
+   common = { path = "../../libs/common" } # If needed
+   # ... other dependencies
+   ```
 
 ---
 
@@ -237,8 +265,8 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
        extract::{Extension, Json},
        http::StatusCode,
    };
-   use common::db::projects::{create_project, get_projects};
-   use common::db::models::Project;
+   use db::queries::project_queries::{create_project, get_projects};
+   use db::models::Project;
    use sqlx::PgPool;
    use serde::Deserialize;
    use anyhow::Result;
@@ -282,6 +310,16 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
      - **Deserialization**: Using `serde` for JSON payloads.
      - **Dependency Injection**: Using `Extension` to pass the database pool.
 
+2. **Update the Handlers Module**:
+
+   ```rust
+   // services/rest_service/src/handlers/mod.rs
+
+   pub mod projects;
+
+   // ... existing handlers
+   ```
+
 ### Registering the Route
 
 1. **Update the Routes Module**:
@@ -302,9 +340,7 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
    }
    ```
 
-2. **Ensure Routes Are Mounted**:
-
-   In `main.rs`, ensure you're mounting the router correctly.
+2. **Ensure Routes Are Mounted in `main.rs`**:
 
    ```rust
    // services/rest_service/src/main.rs
@@ -331,7 +367,7 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
        let app = create_router().layer(Extension(pool));
 
        // Run it
-       axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+       axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
            .serve(app.into_make_service())
            .await
            .unwrap();
@@ -352,18 +388,22 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
 1. **Test Database Functions**:
 
    ```rust
-   // common/src/db/projects.rs
+   // libs/db/src/queries/project_queries.rs
 
    #[cfg(test)]
    mod tests {
        use super::*;
-       use sqlx::{Pool, Postgres};
-       use dotenv::dotenv;
-       use std::env;
+       use sqlx::{Pool, Postgres, PgPoolOptions};
+       use config::{Config, File, Environment};
 
        async fn setup_db() -> Pool<Postgres> {
-           dotenv().ok();
-           let database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+           let config = Config::builder()
+               .add_source(File::with_name("config/test"))
+               .add_source(Environment::with_prefix("APP"))
+               .build()
+               .expect("Failed to load configuration");
+
+           let database_url = config.get_string("database_url").expect("DATABASE_URL must be set in config");
            PgPoolOptions::new()
                .max_connections(1)
                .connect(&database_url)
@@ -398,21 +438,24 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
 
 ### Integration Tests
 
-1. **Test API Endpoints**:
+1. **Create Integration Test File**:
 
    ```rust
    // services/rest_service/tests/projects_integration_tests.rs
 
-   use super::*;
-   use axum::http::{StatusCode, Request};
+   use axum::{
+       body::Body,
+       http::{Request, StatusCode},
+   };
    use tower::ServiceExt; // for `oneshot`
    use serde_json::json;
-   use common::db::models::Project;
+   use db::models::Project;
+   use crate::main::create_router;
 
    #[tokio::test]
    async fn test_create_and_list_projects_api() {
        // Set up the app
-       let app = crate::main::create_app().await;
+       let app = create_router();
 
        // Test POST /api/projects
        let response = app
@@ -421,12 +464,13 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
                    .method("POST")
                    .uri("/api/projects")
                    .header("Content-Type", "application/json")
-                   .body(serde_json::to_vec(&json!({
-                       "name": "API Test Project",
-                       "description": "Test Description"
-                   }))
-                   .unwrap()
-                   .into())
+                   .body(Body::from(
+                       serde_json::to_vec(&json!({
+                           "name": "API Test Project",
+                           "description": "Test Description"
+                       }))
+                       .unwrap(),
+                   ))
                    .unwrap(),
            )
            .await
@@ -440,7 +484,7 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
                Request::builder()
                    .method("GET")
                    .uri("/api/projects")
-                   .body(Default::default())
+                   .body(Body::empty())
                    .unwrap(),
            )
            .await
@@ -588,7 +632,12 @@ pub async fn get_projects(pool: &PgPool) -> Result<Vec<Project>> {
 
 ## Conclusion
 
-By following this guide, you've successfully added a new API route and database table while adhering to the project's best practices. You've utilized the recommended tools, written tests to ensure correctness, and maintained high code quality throughout the process.
+By following this guide, you've successfully added a new API route and database table while adhering to our project's structure and best practices. You've utilized the recommended tools, written tests to ensure correctness, and maintained high code quality throughout the process.
+
+- **Project Structure Alignment**: Ensured that all code additions fit within the established `libs` and `services` directories.
+- **Best Practices**: Followed Rust conventions and project guidelines for code quality, testing, and documentation.
+- **Modularity**: Leveraged shared libraries in `libs/` for reusability and maintainability.
+- **Rapid Development**: Structured the project to facilitate quick and efficient development.
 
 ---
 
@@ -599,9 +648,14 @@ By following this guide, you've successfully added a new API route and database 
 - **Tokio Documentation**: [Tokio Async Runtime](https://tokio.rs/tokio/tutorial)
 - **Axum Documentation**: [Axum Web Framework](https://docs.rs/axum)
 - **SQLx Documentation**: [SQLx Async Rust SQL crate](https://docs.rs/sqlx)
+- **Project Structure Overview**: [Project Structure Documentation](PROJECT_STRUCTURE.md) *(if available)*
 
 ---
 
 **Note**: Remember to keep your feature branch up-to-date with the `develop` branch by rebasing or merging as necessary. This ensures that your code integrates smoothly with the latest changes in the codebase.
 
 If you have any questions or need assistance, don't hesitate to reach out to the project maintainers or open a discussion in the project's communication channels.
+
+---
+
+By integrating your work seamlessly into the new project structure, you contribute to a codebase that's organized, scalable, and easy for all team members to navigate and maintain.

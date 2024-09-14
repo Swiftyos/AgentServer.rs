@@ -1,0 +1,19 @@
+[package]
+name = "db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.88"
+chrono = { version = "0.4.38", features = ["serde"] }
+config = { version = "0.14.0", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+sqlx = { version = "0.8.2", features = ["postgres", "uuid", "chrono", "runtime-tokio-rustls", "macros"] }
+tokio = { version = "1.40.0", features = ["rt", "macros"], optional = true }
+uuid = { version = "1.10", features = ["serde", "v4"] }
+tracing = "0.1.40"
+
+[dev-dependencies]
+config = "0.14.0"
+tokio = { version = "1.40.0", features = ["full"] }
+serde_json = "1.0.128"

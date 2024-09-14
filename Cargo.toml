@@ -1,10 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "common",
-    "services/webhook_service",
-    "services/timer_service",
+    "libs/common",
+    "libs/db",
     "services/rest_service",
-    "services/graph_processor_worker",
-    "services/websocket_service",
 ]
