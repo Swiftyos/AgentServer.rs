@@ -26,7 +26,7 @@ use tracing::info;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let database_url = "postgres://username:password@localhost/database";
+///     let database_url = "postgres://username:password@localhost/database"; // pragma: allowlist secret
 ///     let schema = Some("public");
 ///     
 ///     let pool = connection::create_pool(database_url, schema).await?;
@@ -85,7 +85,7 @@ pub async fn create_pool(database_url: &str, schema: Option<&str>) -> Result<PgP
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let database_url = "postgres://username:password@localhost/database";
+///     let database_url = "postgres://username:password@localhost/database"; // pragma: allowlist secret
 ///     let pool = connection::create_pool(database_url, None).await?;
 ///     
 ///     connection::apply_migrations(&pool).await?;

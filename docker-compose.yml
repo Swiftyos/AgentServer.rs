@@ -3,7 +3,7 @@ services:
     image: postgres:latest
     environment:
       POSTGRES_DB: autogpt
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: admin # pragma: allowlist secret
+      POSTGRES_PASSWORD: admin # pragma: allowlist secret
     ports:
       - "5432:5432"
