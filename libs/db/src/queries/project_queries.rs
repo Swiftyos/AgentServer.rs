@@ -74,9 +74,11 @@ pub async fn get_projects(pool: &PgPool, page: i64, page_size: i64) -> Result<Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::connection::{apply_migrations, create_pool};
     use config::{Config, Environment, File};
-    use sqlx::postgres::PgPoolOptions;
     use sqlx::{Pool, Postgres};
+    use tracing::{error, info};
+    use tracing_test::traced_test;
 
     async fn setup_db() -> Pool<Postgres> {
         let config = Config::builder()
@@ -89,13 +91,30 @@ mod tests {
             .get_string("database_url")
             .expect("DATABASE_URL must be set in config");
 
-        PgPoolOptions::new()
-            .max_connections(1)
-            .connect(&database_url)
+        let schema_string = format!(
+            "test_schema_{}",
+            uuid::Uuid::new_v4().to_string().replace("-", "")
+        );
+        let schema = Some(schema_string.as_str());
+
+        info!("Database URL: {}", database_url);
+        info!("Schema: {}", schema_string);
+        let pool = create_pool(&database_url, schema)
             .await
-            .expect("Failed to connect to test database")
+            .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e));
+        match pool {
+            Ok(pool) => {
+                apply_migrations(&pool).await.unwrap();
+                pool
+            }
+            Err(e) => {
+                error!("Failed to create database pool: {}", e);
+                panic!("Failed to create database pool: {}", e);
+            }
+        }
     }
 
+    #[traced_test]
     #[tokio::test]
     async fn test_create_and_get_projects() {
         let pool = setup_db().await;
@@ -117,6 +136,7 @@ mod tests {
         assert_eq!(projects[0].name, "Test Project");
     }
 
+    #[traced_test]
     #[tokio::test]
     async fn test_pagination() {
         let pool = setup_db().await;
@@ -138,7 +158,7 @@ mod tests {
             .fetch_all(&pool)
             .await
             .unwrap();
-        println!("Total projects: {}", all_projects.len());
+        info!("Total projects: {}", all_projects.len());
         assert_eq!(all_projects.len(), 15, "Expected 15 total projects");
 
         // Test first page
