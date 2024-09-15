@@ -8,6 +8,7 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
+
       - id: cargo-fmt
         name: cargo fmt
         description: Run cargo fmt on files included in the commit
@@ -15,6 +16,7 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
+        
       - id: cargo-nextest
         name: cargo nextest
         description: Run cargo nextest on files included in the commit
@@ -22,6 +24,7 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
+
       - id: cargo-outdated
         name: cargo outdated
         description: Check for outdated dependencies
@@ -47,3 +50,4 @@ repos:
       - id: detect-secrets
         name: Detect secrets
         description: Detects high entropy strings that are likely to be passwords.
+        stages: [push]
