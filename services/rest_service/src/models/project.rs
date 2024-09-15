@@ -5,13 +5,13 @@ use utoipa::{IntoParams, ToSchema};
 #[derive(Serialize, Deserialize, IntoParams, ToSchema, Debug)]
 pub struct CreateProjectPayload {
     pub name: String,
-    pub description: Option<String>,
+    pub description: String,
 }
 
 #[derive(Serialize, Deserialize, IntoParams, ToSchema, Debug)]
 pub struct GetProjectsParams {
-    pub page: i64,
-    pub page_size: i64,
+    pub page: Option<i32>,
+    pub page_size: Option<i32>,
 }
 
 #[cfg(test)]
@@ -22,17 +22,10 @@ mod tests {
     fn test_create_project_payload() {
         let payload = CreateProjectPayload {
             name: "Test Project".to_string(),
-            description: Some("A test project".to_string()),
+            description: "A test project".to_string(),
         };
         assert_eq!(payload.name, "Test Project");
-        assert_eq!(payload.description, Some("A test project".to_string()));
-
-        let payload_no_desc = CreateProjectPayload {
-            name: "Another Project".to_string(),
-            description: None,
-        };
-        assert_eq!(payload_no_desc.name, "Another Project");
-        assert_eq!(payload_no_desc.description, None);
+        assert_eq!(payload.description, "A test project".to_string());
     }
 
     #[test]
@@ -40,7 +33,7 @@ mod tests {
         // Test Serialize trait
         let payload = CreateProjectPayload {
             name: "Test Project".to_string(),
-            description: Some("A test project".to_string()),
+            description: "A test project".to_string(),
         };
 
         let serialized = serde_json::to_string(&payload).unwrap();
@@ -52,58 +45,50 @@ mod tests {
         // Test Deserialize trait
         let deserialized: CreateProjectPayload = serde_json::from_str(&serialized).unwrap();
         assert_eq!(deserialized.name, "Test Project");
-        assert_eq!(deserialized.description, Some("A test project".to_string()));
+        assert_eq!(deserialized.description, "A test project".to_string());
 
         // Test Debug trait
         let payload = CreateProjectPayload {
             name: "Debug Test".to_string(),
-            description: Some("Testing debug output".to_string()),
+            description: "Testing debug output".to_string(),
         };
         let debug_output = format!("{:?}", payload);
         assert_eq!(
-        debug_output,
-        "CreateProjectPayload { name: \"Debug Test\", description: Some(\"Testing debug output\") }"
-    );
-
-        // Test Debug trait for payload without description
-        let payload_no_desc = CreateProjectPayload {
-            name: "No Desc".to_string(),
-            description: None,
-        };
-        let debug_output_no_desc = format!("{:?}", payload_no_desc);
-        assert_eq!(
-            debug_output_no_desc,
-            "CreateProjectPayload { name: \"No Desc\", description: None }"
+            debug_output,
+            "CreateProjectPayload { name: \"Debug Test\", description: \"Testing debug output\" }"
         );
     }
 
     #[test]
     fn test_get_projects_params() {
         let params = GetProjectsParams {
-            page: 1,
-            page_size: 10,
+            page: Some(1),
+            page_size: Some(10),
         };
-        assert_eq!(params.page, 1);
-        assert_eq!(params.page_size, 10);
+        assert_eq!(params.page, Some(1));
+        assert_eq!(params.page_size, Some(10));
     }
 
     #[test]
     fn test_get_projects_params_traits() {
         // Test Serialize trait
         let params = GetProjectsParams {
-            page: 2,
-            page_size: 20,
+            page: Some(2),
+            page_size: Some(20),
         };
         let serialized = serde_json::to_string(&params).unwrap();
         assert_eq!(serialized, r#"{"page":2,"page_size":20}"#);
 
         // Test Deserialize trait
         let deserialized: GetProjectsParams = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(deserialized.page, 2);
-        assert_eq!(deserialized.page_size, 20);
+        assert_eq!(deserialized.page, Some(2));
+        assert_eq!(deserialized.page_size, Some(20));
 
         // Test Debug trait
         let debug_output = format!("{:?}", params);
-        assert_eq!(debug_output, "GetProjectsParams { page: 2, page_size: 20 }");
+        assert_eq!(
+            debug_output,
+            "GetProjectsParams { page: Some(2), page_size: Some(20) }"
+        );
     }
 }

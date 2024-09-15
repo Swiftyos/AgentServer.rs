@@ -8,7 +8,7 @@ use sqlx::PgPool;
 ///
 /// * `pool` - A reference to the PostgreSQL connection pool.
 /// * `name` - The name of the project.
-/// * `description` - An optional description of the project.
+/// * `description` - The description of the project.
 ///
 /// # Returns
 ///
@@ -18,11 +18,7 @@ use sqlx::PgPool;
 /// # Errors
 ///
 /// This function will return an error if the database query fails to execute.
-pub async fn create_project(
-    pool: &PgPool,
-    name: &str,
-    description: Option<&str>,
-) -> Result<Project> {
+pub async fn create_project(pool: &PgPool, name: &str, description: &str) -> Result<Project> {
     let project = sqlx::query_as::<_, Project>(
         r#"
         INSERT INTO projects (name, description)
@@ -54,7 +50,14 @@ pub async fn create_project(
 /// # Notes
 ///
 /// Projects are ordered by creation date in descending order (newest first).
-pub async fn get_projects(pool: &PgPool, page: i64, page_size: i64) -> Result<Vec<Project>> {
+pub async fn get_projects(
+    pool: &PgPool,
+    page: Option<i32>,
+    page_size: Option<i32>,
+) -> Result<Vec<Project>> {
+    let page = page.unwrap_or(1);
+    let page_size = page_size.unwrap_or(10);
+
     let offset = (page - 1) * page_size;
     let projects = sqlx::query_as::<_, Project>(
         r#"
@@ -125,13 +128,13 @@ mod tests {
             .unwrap();
 
         // Test create_project
-        let project = create_project(&pool, "Test Project", Some("Description"))
+        let project = create_project(&pool, "Test Project", "Description")
             .await
             .unwrap();
         assert_eq!(project.name, "Test Project");
 
         // Test get_projects
-        let projects = get_projects(&pool, 1, 10).await.unwrap();
+        let projects = get_projects(&pool, Some(1), Some(10)).await.unwrap();
         assert_eq!(projects.len(), 1);
         assert_eq!(projects[0].name, "Test Project");
     }
@@ -148,7 +151,7 @@ mod tests {
 
         // Create multiple projects
         for i in (1..=15).rev() {
-            create_project(&pool, &format!("Project {}", i), Some("Description"))
+            create_project(&pool, &format!("Project {}", i), "Description")
                 .await
                 .unwrap();
         }
@@ -162,19 +165,19 @@ mod tests {
         assert_eq!(all_projects.len(), 15, "Expected 15 total projects");
 
         // Test first page
-        let first_page = get_projects(&pool, 1, 10).await.unwrap();
+        let first_page = get_projects(&pool, Some(1), Some(10)).await.unwrap();
         assert_eq!(first_page.len(), 10);
         assert_eq!(first_page[0].name, "Project 1");
         assert_eq!(first_page[9].name, "Project 10");
 
         // Test second page
-        let second_page = get_projects(&pool, 2, 10).await.unwrap();
+        let second_page = get_projects(&pool, Some(2), Some(10)).await.unwrap();
 
         assert_eq!(second_page[0].name, "Project 11");
         assert_eq!(second_page[4].name, "Project 15");
         assert_eq!(second_page.len(), 5);
         // Test empty page
-        let empty_page = get_projects(&pool, 3, 10).await.unwrap();
+        let empty_page = get_projects(&pool, Some(3), Some(10)).await.unwrap();
         assert_eq!(empty_page.len(), 0);
     }
 }

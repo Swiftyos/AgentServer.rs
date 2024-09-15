@@ -7,7 +7,7 @@ use uuid::Uuid;
 pub struct Project {
     pub id: Uuid,
     pub name: String,
-    pub description: Option<String>,
+    pub description: String,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub created_at: DateTime<Utc>,
     #[serde(with = "chrono::serde::ts_seconds")]
@@ -25,7 +25,7 @@ mod tests {
         let project = Project {
             id: Uuid::new_v4(),
             name: "Test Project".to_string(),
-            description: Some("A project for testing".to_string()),
+            description: "A project for testing".to_string(),
             created_at: Utc.with_ymd_and_hms(2024, 4, 27, 12, 0, 0).unwrap(),
             updated_at: Utc.with_ymd_and_hms(2024, 4, 28, 12, 0, 0).unwrap(),
         };
@@ -46,7 +46,7 @@ mod tests {
         let project = Project {
             id: Uuid::new_v4(),
             name: "Minimal Project".to_string(),
-            description: None,
+            description: "Some description".to_string(),
             created_at: Utc.with_ymd_and_hms(2024, 5, 1, 9, 0, 0).unwrap(),
             updated_at: Utc.with_ymd_and_hms(2024, 5, 1, 9, 0, 0).unwrap(),
         };
@@ -66,7 +66,7 @@ mod tests {
     fn test_project_creation() {
         let id = Uuid::new_v4();
         let name = "New Project".to_string();
-        let description = Some("A newly created project".to_string());
+        let description = "A newly created project".to_string();
         let created_at = Utc::now();
         let updated_at = Utc::now();
 

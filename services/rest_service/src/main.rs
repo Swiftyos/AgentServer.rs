@@ -7,6 +7,7 @@ mod handlers;
 mod models;
 mod routes;
 
+use db::pg_repository::PgProjectRepository;
 use routes::create_routes;
 
 #[tokio::main]
@@ -35,8 +36,10 @@ async fn main() {
         .await
         .expect("Failed to apply migrations");
 
+    let repo = PgProjectRepository::new(pool);
+
     // Build our application with routes
-    let app = create_routes().with_state(pool);
+    let app = create_routes().with_state(repo);
 
     // Run it
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

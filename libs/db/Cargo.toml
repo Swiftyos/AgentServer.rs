@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.88"
+async-trait = "0.1.82"
 chrono = { version = "0.4.38", features = ["serde"] }
 config = { version = "0.14.0", optional = true }
 serde = { version = "1.0", features = ["derive"] }
