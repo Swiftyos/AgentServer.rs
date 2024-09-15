@@ -1,3 +1,37 @@
+//! Kafka implementation of the MessageBroker trait.
+//!
+//! This module provides a Kafka-based implementation of the `MessageBroker` trait,
+//! allowing for pub/sub operations using Apache Kafka as the underlying message broker.
+//!
+//! The `KafkaBroker` struct encapsulates the necessary Kafka components (producer, consumer, and admin client)
+//! and implements the `MessageBroker` trait to provide a consistent interface for messaging operations.
+//!
+//! # Example
+//!
+//! ```rust
+//! use messaging::kafka::KafkaBroker;
+//! use messaging::pubsub::{MessageBroker, PubSubMessage};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), String> {
+//!     let broker = KafkaBroker::new("localhost:9092", "my-group-id").await;
+//!
+//!     broker.create_topic("my-topic").await?;
+//!
+//!     let message = PubSubMessage {
+//!         key: Some(b"key".to_vec()),
+//!         payload: b"Hello, Kafka!".to_vec(),
+//!     };
+//!     broker.publish("my-topic", message).await?;
+//!
+//!     broker.subscribe("my-topic", |msg| async move {
+//!         println!("Received message: {:?}", msg.payload);
+//!     }).await?;
+//!
+//!     Ok(())
+//! }
+//! ```
+
 use crate::pubsub::{MessageBroker, PubSubMessage};
 use async_trait::async_trait;
 use rdkafka::admin::{AdminClient, AdminOptions, NewTopic, TopicReplication};
@@ -8,6 +42,8 @@ use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info};
+
+/// A struct representing a Kafka-based message broker.
 pub struct KafkaBroker {
     producer: FutureProducer,
     consumer: Arc<StreamConsumer>,
@@ -15,6 +51,16 @@ pub struct KafkaBroker {
 }
 
 impl KafkaBroker {
+    /// Creates a new `KafkaBroker` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `brokers` - A comma-separated list of host and port pairs that are the addresses of the Kafka brokers in a "bootstrap" Kafka cluster.
+    /// * `group_id` - The name of the consumer group this consumer belongs to.
+    ///
+    /// # Returns
+    ///
+    /// A new `KafkaBroker` instance.
     pub async fn new(brokers: &str, group_id: &str) -> Self {
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
