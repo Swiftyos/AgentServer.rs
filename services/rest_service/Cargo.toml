@@ -8,6 +8,7 @@ anyhow = "^1.0"
 async-trait = "0.1.82"
 axum = "^0.7.5"
 chrono = "0.4.38"
+config = "0.14.0"
 db = { path = "../../libs/db" }
 jsonwebtoken = "^9.3"
 mime = "0.3.17"
@@ -22,4 +23,16 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 utoipa = { version = "4.2.3", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7", features = ["axum"] }
 uuid = "1.10.0"
+metrics = { version = "0.22", default-features = false }
+metrics-exporter-prometheus = { version = "0.13", default-features = false }
 
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[features]
+default = []
+production = []

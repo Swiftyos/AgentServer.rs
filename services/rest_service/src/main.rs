@@ -6,12 +6,22 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 mod handlers;
 mod models;
 mod routes;
+mod srv_config;
 
 use db::repository::PgProjectRepository;
 use routes::create_routes;
 
 #[tokio::main]
 async fn main() {
+    // Load config
+    let config = match srv_config::RestConfig::new() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            tracing::error!("Failed to load configuration: {}", e);
+            std::process::exit(1);
+        }
+    };
+
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
@@ -26,8 +36,7 @@ async fn main() {
         .init();
 
     // Set up database connection
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = connection::create_pool(&database_url, None)
+    let pool = connection::create_pool(&config.database_url, Some(&config.database_schema))
         .await
         .expect("Failed to create database pool");
 
@@ -42,7 +51,10 @@ async fn main() {
     let app = create_routes().with_state(repo);
 
     // Run it
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let host: std::net::IpAddr = config.server_host.parse().expect("Invalid host address");
+    let port = config.server_port;
+
+    let addr = SocketAddr::from((host, port));
 
     tracing::info!("listening on {}", addr);
 
