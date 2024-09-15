@@ -3,7 +3,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use db::pg_repository::PgProjectRepository;
+use db::repository::PgProjectRepository;
 use tower_http::compression::CompressionLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;

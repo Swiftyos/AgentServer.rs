@@ -7,7 +7,7 @@ mod handlers;
 mod models;
 mod routes;
 
-use db::pg_repository::PgProjectRepository;
+use db::repository::PgProjectRepository;
 use routes::create_routes;
 
 #[tokio::main]
