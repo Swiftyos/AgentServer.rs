@@ -80,11 +80,16 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
 pub fn create_routes() -> Router<PgProjectRepository> {
     let recorder_handle = setup_metrics_recorder();
 
+    let projects_router = Router::new()
+        .route("/projects", post(create_project::<PgProjectRepository>))
+        .route("/projects", get(get_projects::<PgProjectRepository>));
+
+    let metrics_router = Router::new().route("/", get(move || ready(recorder_handle.render())));
+
     Router::new()
         .route("/", get(root))
-        .route("/projects", post(create_project::<PgProjectRepository>))
-        .route("/projects", get(get_projects::<PgProjectRepository>))
-        .route("/metrics", get(move || ready(recorder_handle.render())))
+        .nest("/api/v1", projects_router)
+        .nest("/metrics", metrics_router)
         .merge(SwaggerUi::new("/docs").url("/docs/openapi.json", ApiDoc::openapi()))
         .layer(middleware::from_fn(track_metrics))
         .layer(CompressionLayer::new())
