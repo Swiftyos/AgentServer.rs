@@ -63,7 +63,7 @@ pub trait MessageBroker {
     async fn publish(&self, topic: &str, message: PubSubMessage) -> Result<(), String>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PubSubMessage {
     pub key: Option<Vec<u8>>,
     pub payload: Vec<u8>,
