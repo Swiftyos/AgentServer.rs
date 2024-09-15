@@ -1,5 +1,7 @@
 # Project Title: Scalable Graph Execution System
 
+[![Rust CI](https://github.com/Swiftyos/AgentServer.rs/actions/workflows/rust.yml/badge.svg)](https://github.com/Swiftyos/AgentServer.rs/actions/workflows/rust.yml)
+
 ## Table of Contents
 
 - [Introduction](#introduction)
