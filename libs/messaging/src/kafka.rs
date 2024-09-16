@@ -13,7 +13,7 @@
 //! use messaging::pubsub::{MessageBroker, PubSubMessage};
 //!
 //! #[tokio::main]
-//! async fn main() -> Result<(), String> {
+//! async fn main() -> anyhow::Result<()> {
 //!     let broker = KafkaBroker::new("localhost:9092", "my-group-id").await;
 //!
 //!     broker.create_topic("my-topic").await?;
@@ -33,6 +33,7 @@
 //! ```
 
 use crate::pubsub::{MessageBroker, PubSubMessage};
+use anyhow::Result;
 use async_trait::async_trait;
 use rdkafka::admin::{AdminClient, AdminOptions, NewTopic, TopicReplication};
 use rdkafka::config::ClientConfig;
@@ -45,7 +46,7 @@ use tracing::{error, info};
 
 /// A struct representing a Kafka-based message broker.
 pub struct KafkaBroker {
-    producer: FutureProducer,
+    producer: Arc<FutureProducer>,
     consumer: Arc<StreamConsumer>,
     admin_client: AdminClient<rdkafka::client::DefaultClientContext>,
 }
@@ -62,12 +63,14 @@ impl KafkaBroker {
     ///
     /// A new `KafkaBroker` instance.
     pub async fn new(brokers: &str, group_id: &str) -> Self {
-        let producer: FutureProducer = ClientConfig::new()
-            .set("bootstrap.servers", brokers)
-            .create()
-            .expect("Producer creation error");
+        let producer = Arc::new(
+            ClientConfig::new()
+                .set("bootstrap.servers", brokers)
+                .create()
+                .expect("Producer creation error"),
+        );
 
-        let consumer: Arc<StreamConsumer> = Arc::new(
+        let consumer = Arc::new(
             ClientConfig::new()
                 .set("bootstrap.servers", brokers)
                 .set("group.id", group_id)
@@ -79,7 +82,7 @@ impl KafkaBroker {
                 .expect("Consumer creation error"),
         );
 
-        let admin_client: AdminClient<_> = ClientConfig::new()
+        let admin_client = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .create()
             .expect("Admin client creation error");
@@ -94,7 +97,7 @@ impl KafkaBroker {
 
 #[async_trait]
 impl MessageBroker for KafkaBroker {
-    async fn create_topic(&self, topic_name: &str) -> Result<(), String> {
+    async fn create_topic(&self, topic_name: &str) -> Result<()> {
         let admin_opts = AdminOptions::new();
         let topic = NewTopic::new(topic_name, 1, TopicReplication::Fixed(1));
 
@@ -106,17 +109,17 @@ impl MessageBroker for KafkaBroker {
                 }
                 Err((_, err)) => {
                     error!("Error creating topic '{}': {:?}", topic_name, err);
-                    Err(err.to_string())
+                    Err(anyhow::anyhow!("Failed to create topic: {}", err))
                 }
             },
             Err(e) => {
                 error!("Admin operation failed: {:?}", e);
-                Err(e.to_string())
+                Err(anyhow::anyhow!("Admin operation failed: {}", e))
             }
         }
     }
 
-    async fn delete_topic(&self, topic: &str) -> Result<(), String> {
+    async fn delete_topic(&self, topic: &str) -> Result<()> {
         let admin_opts = AdminOptions::new();
         match self.admin_client.delete_topics(&[topic], &admin_opts).await {
             Ok(results) => match &results[0] {
@@ -126,17 +129,17 @@ impl MessageBroker for KafkaBroker {
                 }
                 Err((_, err)) => {
                     error!("Error deleting topic '{}': {:?}", topic, err);
-                    Err(err.to_string())
+                    Err(anyhow::anyhow!("Failed to delete topic: {}", err))
                 }
             },
             Err(e) => {
                 error!("Admin operation failed: {:?}", e);
-                Err(e.to_string())
+                Err(anyhow::anyhow!("Admin operation failed: {}", e))
             }
         }
     }
 
-    async fn list_topics(&self) -> Result<Vec<String>, String> {
+    async fn list_topics(&self) -> Result<Vec<String>> {
         match self
             .admin_client
             .inner()
@@ -149,19 +152,19 @@ impl MessageBroker for KafkaBroker {
                 .collect()),
             Err(e) => {
                 error!("Failed to fetch metadata: {:?}", e);
-                Err(e.to_string())
+                Err(anyhow::anyhow!("Failed to fetch metadata: {}", e))
             }
         }
     }
 
-    async fn subscribe<F, Fut>(&self, topic: &str, handler: F) -> Result<(), String>
+    async fn subscribe<F, Fut>(&self, topic: &str, handler: F) -> Result<()>
     where
         F: Fn(PubSubMessage) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = ()> + Send,
     {
         self.consumer
             .subscribe(&[topic])
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| anyhow::anyhow!("Failed to subscribe: {}", e))?;
 
         let consumer = Arc::clone(&self.consumer);
 
@@ -190,7 +193,7 @@ impl MessageBroker for KafkaBroker {
         Ok(())
     }
 
-    async fn publish(&self, topic: &str, message: PubSubMessage) -> Result<(), String> {
+    async fn publish(&self, topic: &str, message: PubSubMessage) -> Result<()> {
         let payload = message.payload;
         let key = message.key.unwrap_or_default();
 
@@ -200,7 +203,7 @@ impl MessageBroker for KafkaBroker {
             Ok(_) => Ok(()),
             Err((e, _)) => {
                 error!("Failed to send message: {:?}", e);
-                Err(e.to_string())
+                Err(anyhow::anyhow!("Failed to send message: {}", e))
             }
         }
     }

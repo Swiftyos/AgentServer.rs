@@ -1,3 +1,4 @@
+use anyhow::Error;
 use async_trait::async_trait;
 
 /// A trait representing a message broker for pub/sub operations.
@@ -9,9 +10,10 @@ use async_trait::async_trait;
 ///
 /// ```rust
 /// use messaging::pubsub::{MessageBroker, PubSubMessage};
+/// use anyhow::Result;
 ///
 /// #[tokio::main]
-/// async fn main() -> Result<(), String> {
+/// async fn main() -> Result<()> {
 ///     // Create a broker instance (implementation-specific)
 ///     let broker = MyMessageBroker::new("localhost:9092", "my-group-id").await;
 ///
@@ -43,24 +45,24 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait MessageBroker {
     /// Creates a new topic with the given name.
-    async fn create_topic(&self, topic: &str) -> Result<(), String>;
+    async fn create_topic(&self, topic: &str) -> Result<(), Error>;
 
     /// Deletes the topic with the given name.
-    async fn delete_topic(&self, topic: &str) -> Result<(), String>;
+    async fn delete_topic(&self, topic: &str) -> Result<(), Error>;
 
     /// Lists all available topics.
-    async fn list_topics(&self) -> Result<Vec<String>, String>;
+    async fn list_topics(&self) -> Result<Vec<String>, Error>;
 
     /// Subscribes to a topic and processes incoming messages with the provided handler.
     ///
     /// The handler is a function that takes a `PubSubMessage` and returns a future.
-    async fn subscribe<F, Fut>(&self, topic: &str, handler: F) -> Result<(), String>
+    async fn subscribe<F, Fut>(&self, topic: &str, handler: F) -> Result<(), Error>
     where
         F: Fn(PubSubMessage) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = ()> + Send;
 
     /// Publishes a message to the specified topic.
-    async fn publish(&self, topic: &str, message: PubSubMessage) -> Result<(), String>;
+    async fn publish(&self, topic: &str, message: PubSubMessage) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]

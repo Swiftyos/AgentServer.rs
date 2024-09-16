@@ -1,6 +1,7 @@
 use crate::models::Project;
 use anyhow::Result;
 use sqlx::PgPool;
+use tracing::{info, instrument};
 
 /// Creates a new project in the database.
 ///
@@ -50,6 +51,7 @@ pub async fn create_project(pool: &PgPool, name: &str, description: &str) -> Res
 /// # Notes
 ///
 /// Projects are ordered by creation date in descending order (newest first).
+#[instrument(name = "db.get_projects", skip_all, fields(page, page_size))]
 pub async fn get_projects(
     pool: &PgPool,
     page: Option<i32>,
@@ -59,6 +61,11 @@ pub async fn get_projects(
     let page_size = page_size.unwrap_or(10);
 
     let offset = (page - 1) * page_size;
+
+    info!(
+        "Fetching projects with page: {:?}, page_size: {:?}",
+        page, page_size
+    );
     let projects = sqlx::query_as::<_, Project>(
         r#"
         SELECT * FROM projects
@@ -70,7 +77,7 @@ pub async fn get_projects(
     .bind(offset)
     .fetch_all(pool)
     .await?;
-
+    info!("Fetched {:?} projects", projects.len());
     Ok(projects)
 }
 

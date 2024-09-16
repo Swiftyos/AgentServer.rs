@@ -7,6 +7,7 @@ use axum::{
 };
 use db::models::project;
 use db::repository::ProjectRepository;
+use tracing::{info, instrument};
 
 use crate::models::project::{CreateProjectPayload, GetProjectsParams};
 
@@ -16,6 +17,14 @@ use crate::models::project::{CreateProjectPayload, GetProjectsParams};
     request_body = CreateProjectPayload,
     responses(
         (status = 200, description = "Project created successfully", body = Project)
+    )
+)]
+#[instrument(
+    name = "create_project",
+    skip(repo),
+    fields(
+        project_name = %payload.name,
+        project_description = %payload.description
     )
 )]
 pub async fn create_project<R: ProjectRepository>(
@@ -33,6 +42,7 @@ pub async fn create_project<R: ProjectRepository>(
         )
             .into_response());
     }
+    info!("Creating project with name: {}", payload.name);
 
     let project = repo
         .create_project(&payload.name, &payload.description)
@@ -51,10 +61,22 @@ pub async fn create_project<R: ProjectRepository>(
         (status = 200, description = "Projects fetched successfully", body = Vec<Project>)
     )
 )]
+#[instrument(
+    name = "get_projects",
+    skip(repo),
+    fields(
+        page = ?params.page,
+        page_size = ?params.page_size
+    )
+)]
 pub async fn get_projects<R: ProjectRepository>(
     State(repo): State<R>,
     Query(params): Query<GetProjectsParams>,
 ) -> Result<Json<Vec<project::Project>>, StatusCode> {
+    info!(
+        "Fetching projects with page: {:?}, page_size: {:?}",
+        params.page, params.page_size
+    );
     let projects = repo
         .get_projects(params.page, params.page_size)
         .await

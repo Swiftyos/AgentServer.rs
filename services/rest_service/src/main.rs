@@ -22,17 +22,24 @@ async fn main() {
         }
     };
 
+    let subscriber = tracing_subscriber::fmt::layer()
+        // Use a more compact, abbreviated log format
+        .compact()
+        // Display source code file paths
+        .with_file(true)
+        // Display source code line numbers
+        .with_line_number(true)
+        // Display the thread ID an event was recorded on
+        .with_thread_ids(true)
+        // Don't display the event's target (module path)
+        .with_target(false);
+
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| "info,rest_service=debug".into()),
         )
-        .with(
-            tracing_subscriber::fmt::layer()
-                .compact()
-                .with_file(true)
-                .with_line_number(true),
-        )
+        .with(subscriber)
         .init();
 
     // Set up database connection
