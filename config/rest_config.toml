@@ -1,5 +1,5 @@
 # Database configuration
-database_url = "postgresql://admin:admin@localhost:5432/autogpt"  # pragma: allowlist secret
+database_url = "postgresql://admin:admin@localhost:5234/autogpt?sslmode=disable"  # pragma: allowlist secret
 database_schema = "public"
 
 # Server configuration

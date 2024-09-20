@@ -1,25 +1,32 @@
-# Builder stage
-FROM rust:1.79 AS builder
-
-# Copy the entire workspace
-COPY libs /usr/src/app/libs
-COPY services /usr/src/app/services
-COPY Cargo.toml Cargo.lock /usr/src/app/
-
-# Set the working directory
+# Build stage
+FROM rust:1.81-alpine AS builder_base
 WORKDIR /usr/src/app
+RUN apk add --no-cache musl-dev
 
-# Build the rest_service
-RUN cargo build --release
+# Use ARG to determine the target architecture
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        rustup target add x86_64-unknown-linux-musl; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        rustup target add aarch64-unknown-linux-musl; \
+    fi
+
+COPY . .
+
+FROM builder_base AS builder
+# Use the appropriate target based on the architecture
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        cargo build --release --target x86_64-unknown-linux-musl && \
+        strip target/x86_64-unknown-linux-musl/release/rustysrv; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        cargo build --release --target aarch64-unknown-linux-musl && \
+        strip target/aarch64-unknown-linux-musl/release/rustysrv; \
+    fi
 
 # Runtime stage
-FROM alpine:3.18 AS rest_service
-
-WORKDIR /usr/local/bin
-
-# Copy the built binary from the builder stage
-COPY --from=builder /usr/src/app/target/release/rest_service .
-
-# Set the startup command
-CMD ["./rest_service"]
-
+FROM alpine:3.18
+RUN apk add --no-cache ca-certificates
+# Copy the binary from the appropriate location based on architecture
+COPY --from=builder /usr/src/app/target/*/release/rustysrv /usr/local/bin/app
+EXPOSE 3000
+CMD ["app"]
