@@ -12,7 +12,7 @@ services:
     image: redis:latest
     command: redis-server --requirepass password
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "libs/common", "libs/blocks",
     "libs/db", "libs/messaging",
-    "services/rest_service",
+    "services/api",
 ]
 
 [profile.release]
